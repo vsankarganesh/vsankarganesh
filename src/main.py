@@ -3,6 +3,7 @@ from status_util import *
 from api_caller_cs import API_Caller
 import pickle
 import sys,os
+from io import BytesIO, StringIO
 
 ruleSection = 'Nissan_CCS2_to_CCS2Ext'
 
@@ -36,8 +37,8 @@ src_API_caller = API_Caller(Source_Jira_url,Source_user,Source_api_key)
 dest_API_caller = API_Caller(Destination_Jira_url,Destination_user,Destination_api_key)
 
 #to Delete all issues
-for iss in dest_API_caller.searchJiraIssues('PROJECT=DUMR'):
-    dest_API_caller.delete_issue(iss)
+#for iss in dest_API_caller.searchJiraIssues('PROJECT=DUMR'):
+    #dest_API_caller.delete_issue(iss)
 
 statusTriggerList = []
 setStatusTriggers(ruleSection)
@@ -61,36 +62,9 @@ for statusTrigger in statusTriggerList:
                     
                     print('Creating new ticket in target.....')
                     target_Issue = dest_API_caller.createIssue(fields)
+                    target_Issue = dest_API_caller.get_issue('DUMR-105')
                     tar_issue_key=str(target_Issue)
                     print('Issue created in target JIRA. ID: ', tar_issue_key)
                     src_API_caller.set_value_to_custom_field(src_issue, tracking_field, tar_issue_key)
                    
-                    attachment_detail_list = src_API_caller.get_all_attchment_details(src_issue)
-                    all_attachments = src_API_caller.get_all_attachments(attachment_detail_list)
-                    print(attachment_detail_list)
-                    print(all_attachments)
-                    
-                    def save_object(obj, filename):
-                        
-                        current_directory = os.getcwd()
-                        final_directory = os.path.join(current_directory, r'src\\tempAttach')
-                        if not os.path.exists(final_directory):
-                            os.makedirs(final_directory)
-                        
-                        filename=final_directory+'\\' + filename
-                        print('####')
-                        #print(filename)
-                        
-                        with open(filename, 'wb') as outp:  # Overwrites any existing file.
-                            pickle.dump(obj, outp, pickle.HIGHEST_PROTOCOL)
-                                
-                    for attachment in all_attachments:
-                        a = attachment.get()
-                        file_name = 'sam.txt'
-                        save_object(a, file_name)
-                        
-                        current_directory = os.getcwd()
-                        final_directory = os.path.join(current_directory, r'src\\tempAttach')
-                        file_name=final_directory+'\\' + file_name
-                        print(file_name)
-                        dest_API_caller.add_attachment(target_Issue, file_name)
+                    src_API_caller.sync_all_attachments(dest_API_caller,src_issue,target_Issue)
