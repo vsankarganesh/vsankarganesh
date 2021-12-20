@@ -40,8 +40,9 @@ dest_API_caller = API_Caller(Destination_Jira_url,Destination_user,Destination_a
 statusTriggerList = []
 setStatusTriggers(ruleSection)
 for statusTrigger in statusTriggerList:  
+    status_rule = config.get(ruleSection, statusTrigger)
     
-    prevStatusList = getPossiblePrevStats(statusTrigger,ruleSection)
+    prevStatusList = getPossiblePrevStats(status_rule)
     #print(prevStatusList)
     for prevStatus in prevStatusList:
         query = Source_JQL_Filter + " AND (status in ('" + statusTrigger + "') AND status WAS in ('" + prevStatus + "'))"
@@ -49,7 +50,8 @@ for statusTrigger in statusTriggerList:
         src_issueList = src_API_caller.searchJiraIssues(query)
         
         for src_issue in src_issueList:
-            targetStatus = getChangeToStatus(statusTrigger,prevStatus,ruleSection)   
+            
+            targetStatus = getChangeToStatus(statusTrigger,prevStatus,ruleSection, status_rule)   
             if(targetStatus.startswith('$CreateNew')):    
                 tracking_field = targetStatus.split('@')[1].strip()               
                 
@@ -58,7 +60,8 @@ for statusTrigger in statusTriggerList:
                     fields=generate_fields_for_new_issue(src_API_caller, dest_API_caller, src_issue, Destination_project_key, Destination_issue_type, Field_Mapping)                
                     
                     print('Creating new ticket in target.....')
-                    target_Issue = dest_API_caller.createIssue(fields)                    
+                    target_Issue = dest_API_caller.createIssue(fields)
+                    #target_Issue = dest_API_caller.get_issue('DUMR-129')
                     tar_issue_key=str(target_Issue)
                     print('Issue created in target JIRA. ID: ', tar_issue_key)
                     print('Storing destination issue key back in source issue at Field: ', tracking_field)
