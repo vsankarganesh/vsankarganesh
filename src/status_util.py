@@ -1,23 +1,17 @@
-import configparser
-import pickle
-
-config = configparser.ConfigParser()
-config.read('src/RuleBook.ini')
     
-def getChangeToStatus(currStatus, prevStatus, ruleBookSection):    
-    rule = config.get(ruleBookSection,currStatus)
+def getChangeToStatus(currStatus, prevStatus, ruleBookSection, status_rule):    
+    
     changeToStatus = None
-    prevStatList = rule.split('|')        
+    prevStatList = status_rule.split('|')        
     for prevStatCm in prevStatList:
                 prvSt = prevStatCm.split(':')
                 if prvSt[0].strip().lower() == prevStatus.lower():
                     changeToStatus = prvSt[1].strip()
     return changeToStatus 
 
-def getPossiblePrevStats(currStatus, ruleBookSection): 
-    prevStatusList = []
-    ruleStmnt = config.get(ruleBookSection,currStatus)   
-    ruleList = ruleStmnt.split('|')
+def getPossiblePrevStats(status_rule): 
+    prevStatusList = []   
+    ruleList = status_rule.split('|')
     for eRule in ruleList:
         pvStL = eRule.split(':')
         prevStatusList.append(pvStL[0].strip())
@@ -47,8 +41,8 @@ def generate_fields_for_new_issue(srcAPICaller, dest_API_caller, issue, Destinat
             destn_field_id=dest_API_caller.get_custom_field_id(dest_field)
             #print('Trying with ID. id is : ', destn_field_id + '  ' + getattr(issue.fields, src_field_id))
             fields[destn_field_id] = getattr(issue.fields, src_field_id)
-    print('-----Printing Generated Fields for creating issue-----')
-    print(fields)
+    #print('-----Printing Generated Fields for creating issue-----')
+    #print(fields)
     return fields
 
 
