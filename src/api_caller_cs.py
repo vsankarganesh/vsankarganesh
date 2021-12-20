@@ -1,4 +1,3 @@
-from typing import Any, Dict, Optional
 from jira import JIRA
 
 class API_Caller:
@@ -31,6 +30,9 @@ class API_Caller:
     def delete_issue(self, issue):
         issue=self.jira.issue(issue)
         issue.delete()
+
+    def get_issue(self, issue_key):
+        return self.jira.issue(issue_key)
     
     def updateIssue(self, issue, field_id, value):
         issue = self.jira.issue(issue)        
@@ -46,7 +48,7 @@ class API_Caller:
         # Fetch all fields
         allfields=self.jira.fields()
         # Make a map from field name -> field id
-        nameMap = {field['name']:field['id'] for field in allfields}
+        nameMap = {field['name']:field['id'] for field in allfields}       
         # Now look up custom fields by name using the map
         return getattr(issue.fields, nameMap[custom_field])
     
@@ -61,20 +63,55 @@ class API_Caller:
         cust_field_id = self.get_custom_field_id(custom_field)
         self.updateIssue(issue, cust_field_id, value)
     
-    def get_all_attchment_details(self, issue):
+    def get_all_attchments(self, issue):
         issue_key = self.jira.issue(issue.key)
-        attachment_details_list = issue_key.fields.attachment
-        #print (attachment_details_list)
+        attachment_details_list = issue_key.fields.attachment       
         return attachment_details_list
     
-    def get_all_attachments(self, all_attachment_details):
-        attachments = []
-        for attachment in all_attachment_details:
-            id= getattr(attachment, 'id')
-            filename= getattr(attachment, 'filename')  
-            attachments.append(self.jira.attachment(id))
-        return attachments
-    
     def add_attachment(self, issue, attachment):
-        self.jira.add_attachment(issue, attachment)
-        #self.jira.add_attachment(issue=issue, attachment=path_to_attachment)
+        self.jira.add_attachment(issue, attachment)        
+        
+    def add_attachment(self, issue, attachment, filename):
+        self.jira.add_attachment(issue=issue, attachment=attachment, filename=filename)
+        
+    def sync_all_attachments(self, dest_API_caller, src_issue, dest_issue):
+        from io import BytesIO
+        src_attachment_list = self.get_all_attchments(src_issue)
+        dest_attachment_list = dest_API_caller.get_all_attchments(dest_issue)
+                                 
+        for attachment in src_attachment_list:
+            file_name = attachment.filename
+            atmt = attachment.get()
+            attachment_as_byte = BytesIO()
+            attachment_as_byte.write(atmt)
+            
+            # checking if destination issue already have an attachment with same filename 
+            has_same_attachment = False            
+            for dest_attachment in dest_attachment_list:
+                #print(dest_attachment)
+                dest_file_name = getattr(dest_attachment, 'filename')                
+                if (file_name==dest_file_name): has_same_attachment = True
+            #########################################################################    
+            
+                
+            if (not has_same_attachment):
+                try:
+                    dest_API_caller.add_attachment(dest_issue, attachment_as_byte, file_name)
+                except Exception as e: 
+                    print(e)
+    ## - END OF Function - sync_all_attachments
+    
+    def sync_all_comments(self, dest_API_caller, src_issue, dest_issue):
+        src_issue = self.jira.issue(src_issue.key)
+        dest_issue = dest_API_caller.jira.issue(dest_issue.key)
+        src_comments = self.jira.comments(src_issue)
+        dest_comments = dest_API_caller.jira.comments(dest_issue)
+        
+        for src_comment in src_comments:
+            #print("Comment Body : ", src_comment.body)  
+            has_same_comment = False 
+            for dest_comment in dest_comments:               
+                if (src_comment.body.strip()==dest_comment.body.strip()): has_same_comment = True                
+            if (not has_same_comment):
+                dest_API_caller.jira.add_comment(dest_issue, src_comment.body)
+                
