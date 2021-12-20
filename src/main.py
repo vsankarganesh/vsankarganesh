@@ -58,8 +58,7 @@ for statusTrigger in statusTriggerList:
                     fields=generate_fields_for_new_issue(src_API_caller, dest_API_caller, src_issue, Destination_project_key, Destination_issue_type, Field_Mapping)                
                     
                     print('Creating new ticket in target.....')
-                    target_Issue = dest_API_caller.createIssue(fields)
-                    target_Issue = dest_API_caller.get_issue('DUMR-125')
+                    target_Issue = dest_API_caller.createIssue(fields)                    
                     tar_issue_key=str(target_Issue)
                     print('Issue created in target JIRA. ID: ', tar_issue_key)
                     print('Storing destination issue key back in source issue at Field: ', tracking_field)
